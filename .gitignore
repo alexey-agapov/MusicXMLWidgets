@@ -18,6 +18,9 @@ eggs/
 .installed.cfg
 *.egg
 MANIFEST
+.npm
+.cache
+
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
@@ -45,6 +48,9 @@ cover/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+.ipython
+.jupyter
+.local
 
 # PyCharm
 .idea/
