@@ -1,0 +1,3 @@
+include MusicXMLWidgets/MusicXMLViewer.js
+include MusicXMLWidgets/MusicXMLPlayer.js
+include MusicXMLWidgets/utils.js
