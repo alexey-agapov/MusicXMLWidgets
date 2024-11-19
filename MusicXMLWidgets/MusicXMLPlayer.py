@@ -3,6 +3,7 @@ import traitlets
 import pathlib
 import music21
 import os
+import io
 
 class MusicXMLPlayer(anywidget.AnyWidget):
     _esm = (pathlib.Path(__file__).parent / "MusicXMLPlayer.js").read_text()
@@ -22,8 +23,7 @@ class MusicXMLPlayer(anywidget.AnyWidget):
 
     @traitlets.observe( 'xml')
     def _on_xml_change( self, change):
-        midi_file = music21.converter.parse( self.xml).write('midi')
-        with open( midi_file, 'rb') as f:
-            self.midi = f.read()
-        os.remove( midi_file)
+        score = music21.converter.parse( self.xml)
+        midi = music21.midi.translate.streamToMidiFile( score)
+        self.midi = midi.writestr()
  
