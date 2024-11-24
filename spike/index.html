@@ -9,6 +9,14 @@
 <body>
     <h1>OSMD MusicXML Timestamp Viewer</h1>
     <input type="file" id="file-input" accept=".musicxml,.xml">
+
+    <!-- New input field and button -->
+    <div>
+        <label for="milliseconds-input">Milliseconds:</label>
+        <input type="number" id="milliseconds-input" placeholder="Enter milliseconds">
+        <button id="render-button">Render</button>
+    </div>
+
     <div id="osmd-container"></div>
     <div id="output"></div>
 
@@ -27,10 +35,35 @@
                     const xml = e.target.result;
                     await osmd.load(xml);
                     osmd.render();
+                    osmd.cursor.show();
                     displayTimestamps(osmd);
                 };
                 reader.readAsText(file);
             }
+        });
+
+        // Add event listener for the Render button
+        document.getElementById('render-button').addEventListener('click', () => {
+            const millisecondsInput = document.getElementById('milliseconds-input');
+            const ms = parseFloat(millisecondsInput.value);
+
+            const cursor = osmd.cursor;
+            cursor.hide();
+            cursor.reset();
+
+            const iter = osmd.cursor.iterator;
+            let offsetInMs = 0.0;
+            while (offsetInMs <= ms) {
+                const measure = iter.currentMeasure;
+                const beatsPerMeasure = measure.activeTimeSignature.denominator;
+                const beatsPerMinute = measure.tempoInBPM;
+                const offsetInBeats = iter.currentTimeStamp.RealValue;
+                iter.moveToNext();
+                const deltaInBeats = iter.currentTimeStamp.RealValue - offsetInBeats;
+                offsetInMs += deltaInBeats * beatsPerMeasure * 60000 / beatsPerMinute;
+            }
+            iter.moveToPrevious();
+            cursor.show();
         });
 
         async function displayTimestamps(osmd) {
@@ -41,13 +74,13 @@
             cursor.reset();
             const iterator = cursor.iterator;
 
-            let lastTimestamp= iterator.currentTimeStamp;
+            let lastTimestamp = iterator.currentTimeStamp;
             let offsetInMs = 0.0;
 
             while (!iterator.EndReached) {
                 let measure = iterator.currentMeasure;
                 let tempoInBPM = measure.tempoInBPM;
-                beats = iterator.currentTimeStamp.RealValue - lastTimestamp.RealValue;
+                const beats = iterator.currentTimeStamp.RealValue - lastTimestamp.RealValue;
                 offsetInMs += beats * measure.activeTimeSignature.denominator * 60000 / tempoInBPM;
 
                 result.push(`Timestamp: ${iterator.currentTimeStamp} beats -> ${offsetInMs.toFixed(2)} ms, Tempo: ${tempoInBPM} BPM`);
