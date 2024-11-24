@@ -35,12 +35,36 @@
                     const xml = e.target.result;
                     await osmd.load(xml);
                     osmd.render();
+                    setupClickListeners();
                     osmd.cursor.show();
-                    displayTimestamps(osmd);
                 };
                 reader.readAsText(file);
             }
         });
+
+        function setupClickListeners() {
+            const cursor = osmd.cursor;
+
+            const iter = cursor.iterator;
+            let offsetInMs = 0.0;
+
+            while (!iter.endReached) {
+                const currentOffset = offsetInMs;
+                cursor.GNotesUnderCursor()?.forEach( (note) => {
+                    note.getSVGGElement()?.addEventListener( 'click', () => {
+                        console.log(`ms: ${currentOffset}`);
+                    })
+                });
+                const measure = iter.currentMeasure;
+                const beatsPerMeasure = measure.activeTimeSignature.denominator;
+                const beatsPerMinute = measure.tempoInBPM;
+                const offsetInBeats = iter.currentTimeStamp.RealValue;
+                cursor.next();
+                const deltaInBeats = iter.currentTimeStamp.RealValue - offsetInBeats;
+                offsetInMs += deltaInBeats * beatsPerMeasure * 60000 / beatsPerMinute;
+            }
+            cursor.reset();
+        }
 
         // Add event listener for the Render button
         document.getElementById('render-button').addEventListener('click', () => {
@@ -65,35 +89,6 @@
             iter.moveToPrevious();
             cursor.show();
         });
-
-        async function displayTimestamps(osmd) {
-            const result = [];
-
-            // Initialize cursor and iterate through all positions
-            const cursor = osmd.cursor;
-            cursor.reset();
-            const iterator = cursor.iterator;
-
-            let lastTimestamp = iterator.currentTimeStamp;
-            let offsetInMs = 0.0;
-
-            while (!iterator.EndReached) {
-                let measure = iterator.currentMeasure;
-                let tempoInBPM = measure.tempoInBPM;
-                const beats = iterator.currentTimeStamp.RealValue - lastTimestamp.RealValue;
-                offsetInMs += beats * measure.activeTimeSignature.denominator * 60000 / tempoInBPM;
-
-                result.push(`Timestamp: ${iterator.currentTimeStamp} beats -> ${offsetInMs.toFixed(2)} ms, Tempo: ${tempoInBPM} BPM`);
-
-                lastTimestamp = iterator.currentTimeStamp;
-                cursor.next();
-            }
-
-            cursor.reset(); // Reset cursor after use
-
-            // Display results
-            output.innerHTML = result.map(line => `<p>${line}</p>`).join('');
-        }
     </script>
 </body>
 </html>
