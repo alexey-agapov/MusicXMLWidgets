@@ -28,19 +28,22 @@ function render({ model, el }) {
         drawingParameters: "compacttight"
     });
 
-    let cursorCurrentMs = 0.0;
-
     function render() {
         osmd.load( model.get( 'xml')).then(() => {
             osmd.render();
-
-            const cursor = osmd.cursor;
-            cursor.reset()
-            cursor.show()
-
+            resetCursor();
         }).catch((error) => {
             console.error('Error rendering MusicXML:', error);
         });
+    }
+
+    let offsetInMs = 0.0;
+    let offsetInBeats = 0.0;
+
+    function resetCursor() {
+        osmd.cursor.reset();
+        offsetInMs = 0.0;
+        offsetInBeats = 0.0;
     }
 
     function updateCursor() {
@@ -52,10 +55,12 @@ function render({ model, el }) {
         }
 
         cursor.hide();
-        cursor.reset();
+
+        if (ms < offsetInMs) {
+            resetCursor();
+        }
 
         const iter = osmd.cursor.iterator;
-        let offsetInMs = 0.0;
         while (offsetInMs <= ms) {
             const measure = iter.currentMeasure;
             const beatsPerMeasure = measure.activeTimeSignature.denominator;
@@ -70,7 +75,6 @@ function render({ model, el }) {
     }
 
     render();
-    //updateCursor();
 
     model.on( 'change:xml', render);
     model.on( 'change:offsetInMs', updateCursor);
