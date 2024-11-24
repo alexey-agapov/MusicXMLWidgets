@@ -28,31 +28,52 @@ function render({ model, el }) {
         drawingParameters: "compacttight"
     });
 
-    function renderHelper() {
+    let cursorCurrentMs = 0.0;
+
+    function render() {
         osmd.load( model.get( 'xml')).then(() => {
             osmd.render();
-            osmd.cursor.reset()
-            const iterator = osmd.cursor.iterator;
 
-            let currentTimeStamp = iterator.currentTimeStamp;
-            let tempoInBPM = iterator.currentMeasure.tempoInBPM;
-
-            while (!iterator.EndReached) {
-                currentTimeStamp = iterator.currentTimeStamp;
-                tempoInBPM = iterator.currentMeasure.tempoInBPM;
-                console.log( currentTimeStamp);
-                console.log( tempoInBPM);
-                console.log( iterator.currentMeasureIndex);
-                osmd.cursor.next()
-            }
-
+            const cursor = osmd.cursor;
+            cursor.reset()
+            cursor.show()
 
         }).catch((error) => {
             console.error('Error rendering MusicXML:', error);
         });
     }
-    renderHelper();
-    model.on( 'change:xml', renderHelper);
+
+    function updateCursor() {
+        const ms = model.get( 'offsetInMs');
+
+        const cursor = osmd.cursor;
+        if (!cursor) {
+            return
+        }
+
+        cursor.hide();
+        cursor.reset();
+
+        const iter = osmd.cursor.iterator;
+        let offsetInMs = 0.0;
+        while (offsetInMs <= ms) {
+            const measure = iter.currentMeasure;
+            const beatsPerMeasure = measure.activeTimeSignature.denominator;
+            const beatsPerMinute = measure.tempoInBPM;
+            const offsetInBeats = iter.currentTimeStamp.RealValue;
+            iter.moveToNext();
+            const deltaInBeats = iter.currentTimeStamp.RealValue - offsetInBeats;
+            offsetInMs += deltaInBeats * beatsPerMeasure * 60000 / beatsPerMinute;
+        }
+        iter.moveToPrevious();
+        cursor.show();
+    }
+
+    render();
+    //updateCursor();
+
+    model.on( 'change:xml', render);
+    model.on( 'change:offsetInMs', updateCursor);
 }
 
 export default { render }
