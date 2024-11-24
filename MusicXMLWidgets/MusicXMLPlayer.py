@@ -2,8 +2,6 @@ import anywidget
 import traitlets
 import pathlib
 import music21
-import os
-import io
 
 class MusicXMLPlayer(anywidget.AnyWidget):
     _esm = (pathlib.Path(__file__).parent / "MusicXMLPlayer.js").read_text()
@@ -11,7 +9,7 @@ class MusicXMLPlayer(anywidget.AnyWidget):
     duration = traitlets.Float().tag(sync=True)
     interval = traitlets.Float().tag(sync=True)
 
-    msvalue = traitlets.CInt().tag(sync=True)
+    msvalue = traitlets.CInt(0).tag(sync=True)
     msduration = traitlets.CInt().tag(sync=True)
     msinterval = traitlets.CInt().tag(sync=True)    
     

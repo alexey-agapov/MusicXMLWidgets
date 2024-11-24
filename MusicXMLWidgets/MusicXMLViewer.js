@@ -31,24 +31,67 @@ function render({ model, el }) {
     function render() {
         osmd.load( model.get( 'xml')).then(() => {
             osmd.render();
-            resetCursor();
+            setTimeout(() => {
+                addNoteClickListeners();
+                updateCursor();
+            } 
+            , 100);
         }).catch((error) => {
             console.error('Error rendering MusicXML:', error);
         });
     }
 
+    function addNoteClickListeners() {
+        resetCursor();
+        iterateCursor( osmd.cursor, 0, null, (cursor, currentOffset) => {
+            cursor.GNotesUnderCursor().forEach( (note) => {
+                const el = note.getSVGGElement();
+                el.addEventListener( 'click', (event) => {
+                    model.set('msvalue', currentOffset);
+;
+                })
+            });
+        });
+        resetCursor();
+    } 
+
     let offsetInMs = 0.0;
-    let offsetInBeats = 0.0;
 
     function resetCursor() {
         osmd.cursor.reset();
-        offsetInMs = 0.0;
-        offsetInBeats = 0.0;
+        offsetInMs = 0;
+    }
+
+    function iterateCursor(cursor, currentOffsetInMs, maxOffsetInMs = null, onIteration = null) {
+        const iter = cursor.iterator;
+        let newOffsetInMs = currentOffsetInMs;
+
+        while (!iter.endReached && (maxOffsetInMs === null || newOffsetInMs <= maxOffsetInMs)) {
+            currentOffsetInMs = newOffsetInMs;
+
+            // Execute the provided callback function with the current offset
+            if (typeof onIteration === 'function') {
+                onIteration( cursor, currentOffsetInMs);
+            }
+            // Calculate the next offset
+            const measure = iter.currentMeasure;
+            const beatsPerMeasure = measure.activeTimeSignature.denominator;
+            const beatsPerMinute = measure.tempoInBPM;
+            const offsetInBeats = iter.currentTimeStamp.RealValue;
+
+            iter.moveToNext();
+
+            const deltaInBeats = iter.currentTimeStamp.RealValue - offsetInBeats;
+            newOffsetInMs += Math.floor( deltaInBeats * beatsPerMeasure * 60000 / beatsPerMinute);
+        }
+        iter.moveToPrevious();
+
+        return currentOffsetInMs;
     }
 
     function updateCursor() {
-        const ms = model.get( 'offsetInMs');
-
+        const ms = model.get( 'msvalue');
+   
         const cursor = osmd.cursor;
         if (!cursor) {
             return
@@ -60,24 +103,16 @@ function render({ model, el }) {
             resetCursor();
         }
 
-        const iter = osmd.cursor.iterator;
-        while (offsetInMs <= ms) {
-            const measure = iter.currentMeasure;
-            const beatsPerMeasure = measure.activeTimeSignature.denominator;
-            const beatsPerMinute = measure.tempoInBPM;
-            const offsetInBeats = iter.currentTimeStamp.RealValue;
-            iter.moveToNext();
-            const deltaInBeats = iter.currentTimeStamp.RealValue - offsetInBeats;
-            offsetInMs += deltaInBeats * beatsPerMeasure * 60000 / beatsPerMinute;
-        }
-        iter.moveToPrevious();
+        let temp = offsetInMs
+        offsetInMs = iterateCursor( cursor, offsetInMs, ms);
+
         cursor.show();
     }
 
     render();
 
     model.on( 'change:xml', render);
-    model.on( 'change:offsetInMs', updateCursor);
+    model.on( 'change:msvalue', updateCursor);
 }
 
 export default { render }

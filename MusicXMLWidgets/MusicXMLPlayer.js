@@ -70,7 +70,6 @@ function render({ model, el }) {
     }
     
     function startLoad() {
-        console.log(song);
         var AudioContextFunc = window.AudioContext || window.webkitAudioContext;
         audioContext = new AudioContextFunc();
         player = new WebAudioFontPlayer();

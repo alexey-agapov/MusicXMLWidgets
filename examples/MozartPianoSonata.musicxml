@@ -107,11 +107,19 @@
           <line>4</line>
         </clef>
       </attributes>
-      <sound tempo="120">
-        <swing>
-          <straight/>
-        </swing>
-      </sound>
+      <!--direction placement="above">
+        <direction-type>
+          <metronome parentheses="no" relative-y="20.00">
+            <beat-unit>quarter</beat-unit>
+            <per-minute>80</per-minute>
+          </metronome>
+        </direction-type>
+        <sound tempo="120">
+          <swing>
+            <straight/>
+          </swing>
+        </sound>
+      </direction-->
       <note default-x="130">
         <pitch>
           <step>C</step>
