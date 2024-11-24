@@ -42,28 +42,42 @@
             }
         });
 
-        function setupClickListeners() {
-            const cursor = osmd.cursor;
-
+        function iterateCursor(cursor, currentOffsetInMs, maxOffsetInMs = null, onIteration = null) {
             const iter = cursor.iterator;
-            let offsetInMs = 0.0;
+            let newOffsetInMs = currentOffsetInMs;
 
-            while (!iter.endReached) {
-                const currentOffset = offsetInMs;
+            while (!iter.endReached && (maxOffsetInMs === null || newOffsetInMs <= maxOffsetInMs)) {
+                currentOffsetInMs = newOffsetInMs;
+
+                // Execute the provided callback function with the current offset
+                if (typeof onIteration === 'function') {
+                    onIteration( cursor, currentOffsetInMs);
+                }
+                // Calculate the next offset
+                const measure = iter.currentMeasure;
+                const beatsPerMeasure = measure.activeTimeSignature.denominator;
+                const beatsPerMinute = measure.tempoInBPM;
+                const offsetInBeats = iter.currentTimeStamp.RealValue;
+
+                iter.moveToNext();
+
+                const deltaInBeats = iter.currentTimeStamp.RealValue - offsetInBeats;
+                newOffsetInMs += deltaInBeats * beatsPerMeasure * 60000 / beatsPerMinute;
+            }
+            iter.moveToPrevious();
+
+            return currentOffsetInMs;
+        }
+
+        function setupClickListeners() {
+            ms = iterateCursor( osmd.cursor, 0, null, (cursor, currentOffset) => {
                 cursor.GNotesUnderCursor()?.forEach( (note) => {
                     note.getSVGGElement()?.addEventListener( 'click', () => {
                         console.log(`ms: ${currentOffset}`);
                     })
                 });
-                const measure = iter.currentMeasure;
-                const beatsPerMeasure = measure.activeTimeSignature.denominator;
-                const beatsPerMinute = measure.tempoInBPM;
-                const offsetInBeats = iter.currentTimeStamp.RealValue;
-                cursor.next();
-                const deltaInBeats = iter.currentTimeStamp.RealValue - offsetInBeats;
-                offsetInMs += deltaInBeats * beatsPerMeasure * 60000 / beatsPerMinute;
-            }
-            cursor.reset();
+            });
+            console.log(ms)
         }
 
         // Add event listener for the Render button
