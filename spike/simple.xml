@@ -44,10 +44,10 @@
     <measure number="2">
       <direction>
         <direction-type>
-          <metronome>
+          <!--metronome>
             <beat-unit>quarter</beat-unit>
             <per-minute>60</per-minute>
-          </metronome>
+          </metronome-->
         </direction-type>
       </direction>
       <note>

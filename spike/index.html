@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OSMD Timestamp Viewer</title>
-    <script src="https://unpkg.com/opensheetmusicdisplay@1.8.0/build/opensheetmusicdisplay.min.js"></script>
+    <script src="https://unpkg.com/opensheetmusicdisplay@1.8.9/build/opensheetmusicdisplay.min.js"></script>
 </head>
 <body>
     <h1>OSMD MusicXML Timestamp Viewer</h1>
@@ -34,8 +34,6 @@
         });
 
         async function displayTimestamps(osmd) {
-            const bpmToMilliseconds = (bpm) => 60000 / bpm;
-
             const result = [];
 
             // Initialize cursor and iterate through all positions
@@ -43,18 +41,18 @@
             cursor.reset();
             const iterator = cursor.iterator;
 
-            let tempoInBPM = iterator.currentMeasure.tempoInBPM;
-            let timestamp = iterator.currentTimeStamp;
-            let milliseconds = 0.0;
+            let lastTimestamp= iterator.currentTimeStamp;
+            let offsetInMs = 0.0;
 
             while (!iterator.EndReached) {
-                let interval = iterator.currentTimeStamp.RealValue - timestamp.RealValue
-                milliseconds += interval * bpmToMilliseconds(tempoInBPM)
-                tempoInBPM = iterator.currentMeasure.tempoInBPM
-                timestamp = iterator.currentTimeStamp
+                let measure = iterator.currentMeasure;
+                let tempoInBPM = measure.tempoInBPM;
+                beats = iterator.currentTimeStamp.RealValue - lastTimestamp.RealValue;
+                offsetInMs += beats * measure.activeTimeSignature.denominator * 60000 / tempoInBPM;
 
-                result.push(`Timestamp: ${timestamp} beats -> ${milliseconds.toFixed(2)} ms, Tempo: ${tempoInBPM} BPM`);
+                result.push(`Timestamp: ${iterator.currentTimeStamp} beats -> ${offsetInMs.toFixed(2)} ms, Tempo: ${tempoInBPM} BPM`);
 
+                lastTimestamp = iterator.currentTimeStamp;
                 cursor.next();
             }
 
