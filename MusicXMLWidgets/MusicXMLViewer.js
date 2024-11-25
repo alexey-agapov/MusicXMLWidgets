@@ -42,17 +42,31 @@ function render({ model, el }) {
     });
 
     function render() {
-        osmd.load( model.get( 'xml')).then(() => {
+        const xml = model.get('xml');
+        
+        // Check if the XML property is defined
+        if (!xml) {
+            console.warn('No XML data provided. Skipping render.');
+            return;
+        }
+        
+        // Try loading and rendering the MusicXML
+        osmd.load(xml).then(() => {
             osmd.render();
+    
+            // Delay execution for DOM updates
             setTimeout(() => {
-                addNoteClickListeners();
-                updateCursor();
-            } 
-            , 100);
+                try {
+                    addNoteClickListeners();
+                    updateCursor();
+                } catch (listenerError) {
+                    console.error('Error in post-render operations:', listenerError);
+                }
+            }, 100);
         }).catch((error) => {
             console.error('Error rendering MusicXML:', error);
         });
-    }
+    }    
 
     function addNoteClickListeners() {
         resetCursor();
@@ -134,13 +148,32 @@ function render({ model, el }) {
     }
 
     function midi_changed() {
-        const midi = model.get('midi').buffer;
-        const midiFile = new MIDIFile( midi);
-        songStart = 0.0;
-        song = midiFile.parseSong();
-        startLoad()
-        updateModel();
-    }
+        const midiData = model.get('midi');
+    
+        // Check if MIDI data exists
+        if (!midiData || !midiData.buffer) {
+            console.warn('No MIDI data provided. Skipping MIDI processing.');
+            return;
+        }
+    
+        try {
+            const midiFile = new MIDIFile(midiData.buffer);
+    
+            // Attempt to parse the MIDI song
+            song = midiFile.parseSong();
+            if (!song || song.tracks.length === 0) {
+                console.warn('Parsed MIDI song is empty or invalid.');
+                return;
+            }
+    
+            // Initialize song and call related functions
+            songStart = 0.0;
+            startLoad();
+            updateModel();
+        } catch (error) {
+            console.error('Error processing MIDI data:', error);
+        }
+    }    
 
     function updateModel() {
         model.set('duration', song.duration)
@@ -210,8 +243,6 @@ function render({ model, el }) {
     }
 
     render();
-    msvalue_changed();
-    midi_changed();
 
     model.on( 'change:xml', render);
     model.on( 'change:msvalue', msvalue_changed);
